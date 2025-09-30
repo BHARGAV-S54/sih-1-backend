@@ -52,7 +52,8 @@ async def chat_endpoint(req: ChatRequest):
             timeout=20
         )
         sarvam_res.raise_for_status()
-        reply_en = sarvam_res.json()["output"][0]["content"]
+        reply_en = sarvam_res.json()["output"]
+
     except Exception as e:
         return ChatResponse(reply=f"Sarvam error: {str(e)}", lang="en")
 
