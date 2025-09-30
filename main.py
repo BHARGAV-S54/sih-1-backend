@@ -40,30 +40,25 @@ async def chat_endpoint(req: ChatRequest):
     except Exception:
         detected_lang = "en"
 
-    # Step 2: Generate reply using Sarvam AI
+    # Step 2: Generate reply using Sarvam AI (OpenAI-style payload)
     try:
         sarvam_res = requests.post(
             "https://api.sarvam.ai/v1/chat/completions",
             headers={"Authorization": f"Bearer {SARVAM_API_KEY}"},
             json={
-                "input": user_msg,
-                "language": "en"
+                "model": "sarvam-m-1",
+                "messages": [
+                    {"role": "user", "content": user_msg}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 200
             },
             timeout=20
         )
-        # Log raw response for diagnosis
         print("Sarvam response:", sarvam_res.status_code, sarvam_res.text)
-
         sarvam_res.raise_for_status()
         data = sarvam_res.json()
-
-        # Safe parsing
-        if "output" in data and isinstance(data["output"], str):
-            reply_en = data["output"]
-        elif "choices" in data:
-            reply_en = data["choices"][0]["message"]["content"]
-        else:
-            reply_en = str(data)  # fallback: dump raw JSON
+        reply_en = data["choices"][0]["message"]["content"]
 
     except requests.HTTPError as e:
         body = sarvam_res.text if 'sarvam_res' in locals() else str(e)
