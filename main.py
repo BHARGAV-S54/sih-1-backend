@@ -33,7 +33,7 @@ class ChatResponse(BaseModel):
 async def chat_endpoint(req: ChatRequest):
     try:
         response = groq_client.chat.completions.create(
-            model="llama3-8b-8192",  # Groq model
+            model="llama-3.1-8b-instant",  # Groq model
             messages=[{"role": "user", "content": req.message}],
         )
         reply = response.choices[0].message.content
