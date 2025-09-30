@@ -46,8 +46,8 @@ async def chat_endpoint(req: ChatRequest):
             "https://api.sarvam.ai/v1/chat/completions",
             headers={"Authorization": f"Bearer {SARVAM_API_KEY}"},
             json={
-                "input": user_msg,       # Sarvam expects "input"
-                "language": "en"         # pivot language for generation
+                "input": user_msg,     # Sarvam expects "input"
+                "language": "en"       # pivot language for generation
             },
             timeout=20
         )
