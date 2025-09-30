@@ -6,16 +6,16 @@ from langdetect import detect
 
 app = FastAPI()
 
-# Allow frontend calls
+# Allow frontend calls (restrict later to your GitHub Pages domain)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # restrict later to your frontend domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# API keys
+# API keys from Render environment
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
 HF_API_KEY = os.getenv("HF_API_KEY")
 
@@ -40,19 +40,19 @@ async def chat_endpoint(req: ChatRequest):
     except Exception:
         detected_lang = "en"
 
-    # Step 2: Generate reply in English using Sarvam
+    # Step 2: Generate reply using Sarvam AI
     try:
         sarvam_res = requests.post(
             "https://api.sarvam.ai/v1/chat/completions",
             headers={"Authorization": f"Bearer {SARVAM_API_KEY}"},
             json={
-                "model": "sarvam-m-1",
-                "messages": [{"role": "user", "content": user_msg}]
+                "input": user_msg,       # Sarvam expects "input"
+                "language": "en"         # pivot language for generation
             },
             timeout=20
         )
         sarvam_res.raise_for_status()
-        reply_en = sarvam_res.json()["choices"][0]["message"]["content"]
+        reply_en = sarvam_res.json()["output"][0]["content"]
     except Exception as e:
         return ChatResponse(reply=f"Sarvam error: {str(e)}", lang="en")
 
@@ -68,8 +68,9 @@ async def chat_endpoint(req: ChatRequest):
             hf_res.raise_for_status()
             reply = hf_res.json()[0]["translation_text"]
             return ChatResponse(reply=reply, lang=detected_lang)
-        except Exception as e:
+        except Exception:
             # fallback to English if translation fails
             return ChatResponse(reply=reply_en, lang="en")
 
+    # If English, return directly
     return ChatResponse(reply=reply_en, lang="en")
