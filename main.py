@@ -6,7 +6,7 @@ from langdetect import detect
 
 app = FastAPI()
 
-# Allow frontend calls (restrict later to your GitHub Pages domain)
+# Allow frontend calls (restrict later to your frontend domain)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -46,14 +46,28 @@ async def chat_endpoint(req: ChatRequest):
             "https://api.sarvam.ai/v1/chat/completions",
             headers={"Authorization": f"Bearer {SARVAM_API_KEY}"},
             json={
-                "input": user_msg,     # Sarvam expects "input"
-                "language": "en"       # pivot language for generation
+                "input": user_msg,
+                "language": "en"
             },
             timeout=20
         )
-        sarvam_res.raise_for_status()
-        reply_en = sarvam_res.json()["output"]
+        # Log raw response for diagnosis
+        print("Sarvam response:", sarvam_res.status_code, sarvam_res.text)
 
+        sarvam_res.raise_for_status()
+        data = sarvam_res.json()
+
+        # Safe parsing
+        if "output" in data and isinstance(data["output"], str):
+            reply_en = data["output"]
+        elif "choices" in data:
+            reply_en = data["choices"][0]["message"]["content"]
+        else:
+            reply_en = str(data)  # fallback: dump raw JSON
+
+    except requests.HTTPError as e:
+        body = sarvam_res.text if 'sarvam_res' in locals() else str(e)
+        return ChatResponse(reply=f"Sarvam error: {sarvam_res.status_code} | {body}", lang="en")
     except Exception as e:
         return ChatResponse(reply=f"Sarvam error: {str(e)}", lang="en")
 
@@ -70,8 +84,6 @@ async def chat_endpoint(req: ChatRequest):
             reply = hf_res.json()[0]["translation_text"]
             return ChatResponse(reply=reply, lang=detected_lang)
         except Exception:
-            # fallback to English if translation fails
             return ChatResponse(reply=reply_en, lang="en")
 
-    # If English, return directly
     return ChatResponse(reply=reply_en, lang="en")
