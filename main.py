@@ -46,7 +46,7 @@ async def chat_endpoint(req: ChatRequest):
             "https://api.sarvam.ai/v1/chat/completions",
             headers={"Authorization": f"Bearer {SARVAM_API_KEY}"},
             json={
-                "model": "sarvam-m-1",
+                "model": "sarvam-m",
                 "messages": [
                     {"role": "user", "content": user_msg}
                 ],
